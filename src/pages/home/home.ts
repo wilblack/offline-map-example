@@ -1,8 +1,10 @@
 import { Component } from '@angular/core';
 //import * as Leaflet from "leaflet";
-import { NavController } from 'ionic-angular';
+import { NavController, Platform } from 'ionic-angular';
 
 declare var L: any;
+declare var sqlitePlugin;
+
 
 @Component({
   selector: 'page-home',
@@ -11,9 +13,10 @@ declare var L: any;
 export class HomePage {
 
   map: any;
-  
-  constructor(public navCtrl: NavController) {
+
+  constructor(public navCtrl: NavController, platform: Platform) {
     // source: https://github.com/stdavis/OfflineMbTiles/blob/master/www/js/TileLayer.MBTiles.js
+    console.log("[[MapPage.constructor]");        
     L.TileLayer.MBTiles = L.TileLayer.extend({
       mbTilesDB: null,
 
@@ -31,8 +34,9 @@ export class HomePage {
         y = Math.pow(2, z) - y - 1;
         var base64Prefix = 'data:image/gif;base64,';
         this.mbTilesDB.transaction((tx) => {
+          console.log(`[MapPage.getTileUrl] SELECT tile_data FROM tiles WHERE zoom_level = ${z} AND tile_column = ${x} AND tile_row = ${y};` );
           tx.executeSql("SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?;", [z, x, y], (tx, res) => {
-            tile.src = base64Prefix + res.rows.item(0).tile_data;
+              tile.src = base64Prefix + res.rows.item(0).tile_data;
           }, (err, msg) => {
             console.log('[MapPage.getTileUrl] error with executeSql', err);
             console.log('[MapPage.getTileUrl] message ', msg);
@@ -49,16 +53,27 @@ export class HomePage {
         this.getTileUrl(tilePoint, zoom, tile);
       }
     });
+
+
+    platform.ready().then(() => {
+        let mbTiles = 'newport_z14.mbtiles';
+        let layerName = 'Offline Layer';
+        let maxZoom = 13;
+        if (window.sqlitePlugin) {
+          this.initializeMbtiles(mbTiles, layerName, maxZoom);
+        } else {
+          console.log("[MapPage.ngOnInit]Could not find window.sqlitePlugin");
+        }
+    });
   }
 
-  ngOnInit () {
-    this.map = L.map('map').setView([51.505, -0.09], 13);
-    let mbTiles = '';
-    let layerName = '';
-    let maxZoom = 13;
-    if (window.sqlitePlugin) {
-      this.initializeMbtiles(mbTiles, layerName, maxZoom);
-    }
+  ngOnInit() {
+    this.map = L.map('map').setView([44.65, -123.91], 10);
+    // if (window.sqlitePlugin) {
+    //   this.initializeMbtiles(mbTiles, layerName, maxZoom);
+    // } else {
+    //   console.log("[MapPage.ngOnInit]Could not find window.sqlitePlugin");
+    // }
   }
 
   /**
@@ -87,6 +102,8 @@ export class HomePage {
         console.log(error);
       });
   }
+
+
 
 
 }
